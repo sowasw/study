@@ -1,0 +1,11 @@
+#查看进程关系，伪终端里的client  server
+ps -a -o pid,ppid,tty,stat,args,wchan | grep pts
+
+#查看连接的端口
+netstat -a | grep tcp
+
+#查看后台进程
+ps -A | grep ser	
+
+#关闭后台进程
+kill pid

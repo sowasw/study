@@ -1,0 +1,5 @@
+#logdir=logs/
+logdir=./log12/
+
+sqldir=
+
