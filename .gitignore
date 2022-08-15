@@ -52,3 +52,6 @@ Mkfile.old
 dkms.conf
 
 *.stackdump
+
+# test/stltest
+test/stltest/file*

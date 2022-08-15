@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "heap.h"
 
-#define SIZE 1000000               //数组长度
+#define SIZE 100000               //数组长度
 #define MAXSIZE_TO_PRINT 100 //数组大小不超过此值就打印到屏幕上
 
 void initArrayRand(int *arr, int size);               //随机初始化数组
