@@ -1,0 +1,13 @@
+下载vscode慢：复制下载链接，把地址更换为vscode.cdn.azure.cn，速度就上去了。如：https://vscode.cdn.azure.cn/stable...
+
+git clone 慢：git config --global --unset https.proxy
+
+ubuntu 打开22端口，ssh远程连接服务：
+sudo apt-get install openssh-server
+#lsof -i:22
+systemctl enable ssh.service
+sudo systemctl enable ssh.service
+sudo service sshd start
+
+ubuntu生成ssh密钥
+ssh-keygen -t rsa -C "your_email@example.com"
