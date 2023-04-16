@@ -1,0 +1,24 @@
+子模块：
+cat .gitmodules， 可以修改url
+[submodule "boringssl"]
+	path = boringssl
+	url = https://github.com/google/boringssl.git
+
+[submodule "pyca.cryptography"]
+	path = pyca-cryptography
+	url = https://github.com/pyca/cryptography.git
+
+[submodule "krb5"]
+	path = krb5
+	url = https://github.com/krb5/krb5
+
+下载
+git submodule update --init
+或者 git clone下来复制到openssl目录下，再执行上述命令
+git submodule status # 查看子模块状态
+git reflog  # 查看分支、代码切换历史
+
+
+# 压缩
+tar -cvzf openssl.tar.gz openssl/
+

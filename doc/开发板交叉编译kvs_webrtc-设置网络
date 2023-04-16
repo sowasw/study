@@ -1,0 +1,100 @@
+
+
+export CC=/home/weng/works/100ask/ToolChain-6.2.1/bin/arm-linux-gnueabihf-gcc 
+export CXX=/home/weng/works/100ask/ToolChain-6.2.1/bin/arm-linux-gnueabihf-g++
+#export LD=/home/weng/works/100ask/ToolChain-6.2.1/bin/arm-linux-gnueabihf-ld
+#export AR=/home/weng/works/100ask/ToolChain-6.2.1/bin/arm-linux-gnueabihf-ar
+
+
+# kvs-webrtc整个编译
+cmake .. -DBUILD_SAMPLE=FALSE -DBUILD_STATIC_LIBS=TRUE -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64 -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-linux-gnueabihf
+
+
+
+# 可以裁剪编译模块： https://zhuanlan.zhihu.com/p/621403041
+# 查看CMake/Dependencies中的文件可以获取到依赖库的信息
+
+# 单独编译openssl
+# 参考CMake/Dependencies/libopenssl-CMakeLists.txt 文件，配置，安装命令
+1. kvs的  Cmakelists中， 注释 build_dependency(openssl ${BUILD_ARGS})
+2. 下载openssl源码及其子模块源码
+git clone https://github.com/openssl/openssl.git
+# 切换到对应tag ：OpenSSL_1_1_1g
+git show OpenSSL_1_1_1g
+git checout  xx
+或直接：
+git clone --branch --depth=10 OpenSSL_1_1_1g https://github.com/openssl/openssl.git
+# 子模块
+cat .gitmodules， 修改boringssl url，不然google的代码拉不下来：
+[submodule "boringssl"]
+	path = boringssl
+	url = https://github.com/google/boringssl.git
+git submodule update --init
+3. 配置：（不同平台配置命令获取：可以先执行一下kvs-webrtc整个编译的命令，把${CONFIGURE_COMMAND}打印出来：message(STATUS "${CONFIGURE_COMMAND}")， 打印这个需要把第一步的注释取消）
+./Configure no-shared no-dso no-async --prefix=/home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source --openssldir=/home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source linux-generic32
+4. 编译安装
+make
+make istall_sw
+
+# libwebsockets  # 查看CMake/Dependencies中的文件可以获取到依赖库的信息
+https://github.com/warmcat/libwebsockets, 下载v4.2.2：
+git clone --branch v4.2.2 --depth=10 https://github.com/warmcat/libwebsockets.git
+把/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/CMake/Dependencies下的两个补丁打上：
+git apply --ignore-whitespace libwebsockets-old-gcc-fix-cast-cmakelists.patch
+git apply --ignore-whitespace libwebsockets-leak-pipe-fix.patch
+mkdir build && cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=/home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source -DLWS_WITH_HTTP2=1 -DLWS_HAVE_HMAC_CTX_new=1 -DLWS_HAVE_SSL_EXTRA_CHAIN_CERTS=1 -DLWS_HAVE_OPENSSL_ECDH_H=1 -DLWS_HAVE_EVP_MD_CTX_free=1 -DLWS_WITHOUT_SERVER=1 -DLWS_WITHOUT_TESTAPPS=1 -DLWS_WITH_THREADPOOL=1 -DLWS_WITHOUT_TEST_SERVER_EXTPOLL=1 -DLWS_WITHOUT_TEST_PING=1 -DLWS_WITHOUT_TEST_CLIENT=1 -DLWS_WITH_STATIC=1 -DLWS_WITH_SHARED=0 -DLWS_STATIC_PIC=1 -DLWS_WITH_ZLIB=0 -DLWS_HAVE_EVENTFD=0 -DLWS_WITH_MBEDTLS=OFF -DLWS_OPENSSL_INCLUDE_DIRS=/home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source/include -DLWS_OPENSSL_CRYPTO_LIBRARY=/home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source/lib -DLWS_OPENSSL_SSL_LIBRARY=/home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source/lib -DCMAKE_C_FLAGS="-I /home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source/include -L /home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source/lib"
+# cmake选项与上一步openssl使用同一方法获取
+make
+手动复制静态库libwebsockets.a到amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source/lib中（由于没有配置安装目录）
+拷贝头文件libwebsockets.h， lws_config.h及/libwebsockets-4.2.2/include/libwebsockets文件夹到amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source/include中
+注释 #build_dependency(websockets ${BUILD_ARGS})
+
+# libsrtp
+#需要升级cmake 3.20以上：下载源码，sudo ./configure， sudo make, sudo make install
+git clone https://github.com/cisco/libsrtp.git
+git checkout bd0f27ec0e299ad101a396dde3f7c90d48efc8fc
+SET(BUILD_LIBSRTP_HOST_PLATFORM x86_64)
+SET(BUILD_LIBSRTP_DESTINATION_PLATFORM arm-linux-gnueabihf)
+cmake .. -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=/home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source -DENABLE_OPENSSL=ON -DBUILD_SHARED_LIBS=OFF -DOPENSSL_ROOT_DIR=/home/weng/works/kvs-pc/third-party/srcs/amazon-kinesis-video-streams-webrtc-sdk-c-1.7.3/open-source
+拷贝静态库
+
+# usrsctp
+ git clone https://github.com/sctplab/usrsctp.git
+ git checkout 1ade45cbadfd19298d2c47dc538962d4425ad2dd
+cmake .. -DCMAKE_C_FLAGS=-fPIC -Dsctp_werror=0
+拷贝静态库
+
+
+#build_dependency(srtp ${BUILD_ARGS})
+#build_dependency(usrsctp)
+#build_dependency(gtest)
+
+# 编译jsoncpp
+设置CC CXX后，交叉编译json，直接在build里面执行：
+cmake ..
+make
+
+编译测试程序：/home/weng/works/100ask/ToolChain-6.2.1/bin/arm-linux-gnueabihf-g++ test.cpp -ljsoncpp -L ./lib/staticlib/
+或$CXX test.cpp -ljsoncpp -L lib/staticlib/
+scp a.out root@192.168.0.100:/root
+
+
+# 开发板联网： 
+# 自动获取ip
+udhcpc -i eth0
+
+# 手动设置，当前有效
+ifconfig eth0 192.168.5.9
+
+# 永久修改ip
+vi /etc/network/interfaces 修改为：
+auto lo
+iface lo inet loopback
+auto eth0
+iface eth0 inet static
+ address 192.168.5.9
+ netmask 255.255.255.0
+ gateway 192.168.5.1
+ 
+执行/etc/init.d/S40network restart 重启网络服务
